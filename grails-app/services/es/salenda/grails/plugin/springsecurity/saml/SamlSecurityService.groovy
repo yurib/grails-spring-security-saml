@@ -14,15 +14,18 @@
  */
 package es.salenda.grails.plugin.springsecurity.saml
 
+import grails.core.GrailsDomainClass
 import grails.plugin.springsecurity.SpringSecurityService
+import groovy.transform.CompileDynamic
 
 /**
- * A subclass of {@link SpringSecurityService} to replace {@link getCurrentUser()}
+ * A subclass of {@link SpringSecurityService} to replace {@link this.getCurrentUser()}
  * method. The parent implementation performs a database load, but we do not have
  * database users here, so we simply return the authentication details.
  * 
  * @author alvaro.sanchez
  */
+@CompileDynamic
 class SamlSecurityService extends SpringSecurityService {
 
 	static transactional = false
@@ -46,7 +49,7 @@ class SamlSecurityService extends SpringSecurityService {
 			String className = config?.userLookup.userDomainClassName
 			String userKey = config?.saml.autoCreate.key
 			if (className && userKey) {
-				Class<?> userClass = grailsApplication.getDomainClass(className)?.clazz
+				Class<GrailsDomainClass> userClass = grailsApplication.getDomainClass(className)?.clazz
 				return userClass."findBy${userKey.capitalize()}"(userDetails."$userKey")
 			}
 		} else { return null}

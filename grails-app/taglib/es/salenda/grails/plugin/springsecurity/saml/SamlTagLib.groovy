@@ -14,32 +14,33 @@
  */
 package es.salenda.grails.plugin.springsecurity.saml
 
-import grails.plugin.springsecurity.SecurityTagLib
 import grails.util.Holders
 import org.springframework.security.saml.SAMLLogoutFilter
-import org.codehaus.groovy.grails.commons.GrailsApplication
 
-class SamlTagLib extends SecurityTagLib {
+
+class SamlTagLib {
+	static namespace = 'sec'
 
 	static final String LOGOUT_SLUG = '/j_spring_security_logout'
 
-	GrailsApplication grailsApplication
+    /** Dependency injection for springSecurityService. */
+    def springSecurityService
 
-	/**
-	 * {@inheritDocs}
-	 */
-	def loggedInUserInfo = { attrs, body ->
-		String field = assertAttribute('field', attrs, 'loggedInUserInfo')
+    /**
+     * {@inheritDocs}
+     */
+    def loggedInUserInfo = { attrs, body ->
+        String field = assertAttribute('field', attrs, 'loggedInUserInfo')
 
-		def source = springSecurityService.authentication.details."${field}"
+        def source = springSecurityService.authentication.details."${field}"
 
-		if (source) {
-			out << source.encodeAsHTML()
-		}
-		else {
-			out << body()
-		}
-	}
+        if (source) {
+            out << source.encodeAsHTML()
+        }
+        else {
+            out << body()
+        }
+    }
 
 	/**
 	 * {@inheritDocs}
@@ -52,7 +53,8 @@ class SamlTagLib extends SecurityTagLib {
 		url = "${contextPath}${url}"
 		if (!selectIdp) {
 			def defaultIdp = Holders.grailsApplication.config.grails.plugin.springsecurity.saml.metadata.defaultIdp
-			url += "?idp=${Holders.grailsApplication.config.grails.plugin.springsecurity.saml.metadata.providers[defaultIdp]}"
+			def providers = Holders.grailsApplication.config.grails.plugin.springsecurity.saml.metadata.providers
+			url += "?idp=${providers[defaultIdp]}"
 		}
 
 		def elementClass = generateClassAttribute(attrs)
@@ -96,4 +98,12 @@ class SamlTagLib extends SecurityTagLib {
 		}
 		elementClass
 	}
+
+    protected assertAttribute(String name, attrs, String tag) {
+        if (!attrs.containsKey(name)) {
+            throwTagError "Tag [$tag] is missing required attribute [$name]"
+        }
+        attrs.remove name
+    }
+
 }

@@ -1,0 +1,24 @@
+h1. Usage
+
+{note}
+Configuring your IDP server is beyond the scope of this document. There are many different approaches and this will most likely be done by IT staff. It's assumed here that you already have a running IDP server which supports SAML 2.0.
+{note}
+
+http://wso2.com/[WSO2] is a popular single sign-on implementation. It's open source and is easy to get started with but is also highly configurable.
+
+h1. Installation
+
+There isn't much that you need to do in your application to be a SAML client. Add a dependency in `BuildConfig` for this plugin:
+
+{code}
+dependencies {
+        ...
+   compile ':spring-security-saml:3.0.0'
+}
+{code}
+then configure any required parameters and whatever optional parameters you want in application.yml or application.groovy. These are described in detail in the include::configuration.adoc[] section
+
+{note}
+The plugin dependencies can be downloaded if you have a proxy server by using the following option "-DPROXY_SERVER_NAME=http://<server>:<port>/nexus/content/groups/public".
+This is not mandatory.
+{note}

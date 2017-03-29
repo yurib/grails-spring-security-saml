@@ -12,14 +12,14 @@ security {
 			assignAuthorities = true
 		}
 		metadata {
-			defaultIdp = 'ping'
+			defaultIdp = null //'ping'
 			url = '/saml/metadata'
-			providers = [ ping :'security/idp-local.xml']
+			providers = [:] //[ ping :'security/idp-local.xml']
 			sp {
-				file = 'security/sp.xml'
+				file = null //'security/sp.xml'
 				defaults = [
 					local: true, 
-					alias: 'test',
+					alias: null, //'test'
 					securityProfile: 'metaiop',
 					signingKey: 'ping',
 					encryptionKey: 'ping', 
@@ -30,10 +30,10 @@ security {
 			}
 		}
 		keyManager {
-			storeFile = 'classpath:security/keystore.jks'
-			storePass = 'nalle123'
-			passwords = [ ping: 'ping123' ]
-			defaultKey = 'ping'
+			storeFile = null //'classpath:security/keystore.jks'
+			storePass = null //'nalle123'
+			passwords = [:]  //[ ping: 'ping123' ]
+			defaultKey = null //'ping'
 		}
 	}
 }
