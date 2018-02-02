@@ -45,6 +45,8 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 	Map samlUserGroupToRoleMapping
 	String samlUserGroupAttribute
 	String userDomainClassName
+	String authoritiesPropertyName
+	String authorityPropertyName
 
 	Object loadUserBySAML(SAMLCredential credential) throws UsernameNotFoundException {
 
@@ -58,14 +60,17 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 			user = mapAdditionalAttributes(credential, user)
 			if (user) {
 				log.debug "Loading database roles for $username..."
-				def authorities = getAuthoritiesForUser(credential)
 
 				def grantedAuthorities = []
+				def userClazz = user.class
 				if (samlAutoCreateActive) {
-					user = saveUser(user.class, user, authorities)
+					def authorities = getAuthoritiesForUser(credential)
+					user = saveUser(userClazz, user, authorities)
+				}
 
-					//TODO move to function
-					Class<GrailsDomainClass> UserRoleClass = grailsApplication.getDomainClass(authorityJoinClassName)?.clazz
+				//TODO move to function
+				Class<GrailsDomainClass> UserRoleClass = grailsApplication.getDomainClass(authorityJoinClassName)?.clazz
+				if(UserRoleClass) {
 					UserRoleClass.withTransaction {
 						def auths = UserRoleClass.findAllWhere(user: user).collect { it.role }
 
@@ -74,11 +79,11 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 
 						}
 					}
+				} else {
+					user."${authoritiesPropertyName}".each { authority ->
+						grantedAuthorities.add(new SimpleGrantedAuthority(authority."$authorityNameField"))
+					}
 				}
-				else {
-					grantedAuthorities = authorities
-				}
-
 				return createUserDetails(user, grantedAuthorities)
 			} else {
 				throw new InstantiationException('could not instantiate new user')
@@ -179,11 +184,11 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 	}
 
 	private def saveUser(userClazz, user, authorities) {
-		if (userClazz && samlAutoCreateActive && samlAutoCreateKey && authorityNameField && authorityJoinClassName) {
+		if (userClazz && samlAutoCreateActive && samlAutoCreateKey && authorityNameField ) {
 
 			Map whereClause = [:]
 			whereClause.put "$samlAutoCreateKey".toString(), user."$samlAutoCreateKey"
-			Class<GrailsDomainClass> joinClass = grailsApplication.getDomainClass(authorityJoinClassName)?.clazz
+			Class<GrailsDomainClass> UserRoleClass = grailsApplication.getDomainClass(authorityJoinClassName)?.clazz
 
 			userClazz.withTransaction {
 				def existingUser = userClazz.findWhere(whereClause)
@@ -193,15 +198,24 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 					user = updateUserProperties(existingUser, user)
 
 					if (samlAutoAssignAuthorities) {
-						joinClass.removeAll user
+						if(UserRoleClass) {
+							UserRoleClass.removeAll user
+						} else {
+							user."${authoritiesPropertyName}".removeAll()
+						}
 					}
 					user.save()
 				}
 				if (samlAutoAssignAuthorities) {
 					authorities.each { grantedAuthority ->
 						def role = getRole(grantedAuthority."${authorityNameField}")
-						joinClass.create(user, role)
+						if(UserRoleClass) {
+							UserRoleClass.create(user, role)
+						} else {
+							user."addTo${authoritiesPropertyName.capitalize()}"(role)
+						}
 					}
+					user.save()
 				}
 
 			}

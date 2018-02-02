@@ -9,7 +9,7 @@ buildscript {
     }
 }
 
-version "3.0.0"
+version "3.0.3.FN"
 group "org.grails.plugins"
 
 apply plugin:"eclipse"
@@ -95,4 +95,16 @@ assets {
 
 jar {
     exclude "plugin/test/**"
+}
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                username artifactory_user
+                password artifactory_password
+            }
+            url "http://repo.fanaticslabs.com/artifactory/plugins-release-local"
+        }
+    }
 }

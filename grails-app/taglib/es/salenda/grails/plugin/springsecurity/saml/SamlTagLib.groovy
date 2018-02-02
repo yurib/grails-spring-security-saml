@@ -26,13 +26,17 @@ class SamlTagLib {
     /** Dependency injection for springSecurityService. */
     def springSecurityService
 
-    /**
+	def getSecurityConfig() {
+		Holders.grailsApplication.config.grails.plugin.springsecurity
+	}
+
+	/**
      * {@inheritDocs}
      */
     def loggedInUserInfo = { attrs, body ->
         String field = assertAttribute('field', attrs, 'loggedInUserInfo')
 
-        def source = springSecurityService.authentication.details."${field}"
+        def source = springSecurityService.authentication?.details?."${field}"
 
         if (source) {
             out << source.encodeAsHTML()
@@ -47,14 +51,16 @@ class SamlTagLib {
 	 */
 	def loginLink = { attrs, body ->
 		def contextPath = request.contextPath
-		def url = Holders.grailsApplication.config.grails.plugin.springsecurity.auth.loginFormUrl
+		def url = securityConfig.auth.loginFormUrl
 		def selectIdp = attrs.remove('selectIdp')
 
 		url = "${contextPath}${url}"
 		if (!selectIdp) {
-			def defaultIdp = Holders.grailsApplication.config.grails.plugin.springsecurity.saml.metadata.defaultIdp
-			def providers = Holders.grailsApplication.config.grails.plugin.springsecurity.saml.metadata.providers
-			url += "?idp=${providers[defaultIdp]}"
+			def defaultIdp = securityConfig.saml.metadata.defaultIdp
+			def providers = securityConfig.saml.metadata.providers
+			if( providers[defaultIdp] ) {
+				url += "?idp=${providers[defaultIdp]}"
+			}
 		}
 
 		def elementClass = generateClassAttribute(attrs)
@@ -72,7 +78,7 @@ class SamlTagLib {
 
 		def url = LOGOUT_SLUG
 
-		def samlEnabled = Holders.grailsApplication.config.grails.plugin.springsecurity.saml.active
+		def samlEnabled = securityConfig.saml.active
 		if(samlEnabled){
 			url = SAMLLogoutFilter.FILTER_URL
 		}

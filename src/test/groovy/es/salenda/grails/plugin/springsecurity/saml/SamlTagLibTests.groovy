@@ -10,7 +10,6 @@ import org.junit.Ignore
 class SamlTagLibTests {
 
 	@Test
-	@Ignore("currently has a bug and requires rework (no yak shave)")
 	void loginLinkRendersCorrectUrl() {
 		def expectedLink = '<a href=\'/saml/login\'>login</a>'
 		assert applyTemplate('<sec:loginLink>Logout</sec:loginLink>') == expectedLink

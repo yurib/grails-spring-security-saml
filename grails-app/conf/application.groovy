@@ -17,6 +17,7 @@ grails {
 					[pattern: '/index.gsp',      access: ['permitAll']],
 					[pattern: '/shutdown',       access: ['permitAll']],
 					[pattern: '/assets/**',      access: ['permitAll']],
+					[pattern: '/static/**',      access: ['permitAll']],
 					[pattern: '/**/js/**',       access: ['permitAll']],
 					[pattern: '/**/css/**',      access: ['permitAll']],
 					[pattern: '/**/images/**',   access: ['permitAll']],
@@ -39,12 +40,12 @@ grails {
 				metadata {
 					defaultIdp = 'okta'
 					url = '/saml/metadata'
-					providers = [ okta: 'https://abc.oktapreview.com/app/sdffdgfd2zsdgdfgfdd1Jds/sso/saml/metadata' ]
+					providers = [ okta: 'https://fanatics.oktapreview.com/app/exk9iw2zvmRiR6d1J0h7/sso/saml/metadata' ]
 				}
 				keyManager {
 					storeFile = 'classpath:security/keystore.jks'
-					storePass = 'nalle123'
-					passwords = [ ping: 'ping123' ]
+					storePass = 'Fanatics2016'
+					passwords = [ ping: 'superBowl2017' ]
 					defaultKey = 'ping'
 				}
 			}

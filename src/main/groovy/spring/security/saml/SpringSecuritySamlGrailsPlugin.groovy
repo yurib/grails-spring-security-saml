@@ -8,6 +8,7 @@ import grails.plugin.springsecurity.SpringSecurityUtils
 import grails.plugin.springsecurity.web.authentication.AjaxAwareAuthenticationFailureHandler
 import grails.plugins.Plugin
 import groovy.transform.CompileDynamic
+import org.apache.commons.httpclient.HostConfiguration
 import org.apache.commons.httpclient.HttpClient
 import org.jdom.Document
 import org.jdom.input.SAXBuilder
@@ -45,11 +46,11 @@ class SpringSecuritySamlGrailsPlugin extends Plugin {
 
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
-        "plugin/test/**",
+        "src/test/**",
         'grails-app/domain/**',
-        "grails-app/views/error.gsp",
-        'docs/**',
-        'scripts/PublishGithub.groovy'
+        "grails-app/views/*",
+        "grails-app/views/layouts/*",
+        'docs/**'
     ]
 
 
@@ -118,7 +119,9 @@ SAML 2.x support for the Spring Security Plugin
         SpringSecurityUtils.registerFilter 'samlLogoutProcessingFilter', SecurityFilterPosition.SECURITY_CONTEXT_FILTER.order + 5
 
         successRedirectHandler(SavedRequestAwareAuthenticationSuccessHandler) {
+            targetUrlParameter = conf.saml.targetUrlParameter ?: null
             alwaysUseDefaultTargetUrl = conf.saml.alwaysUseAfterLoginUrl ?: false
+            useReferer = conf.saml.useReferer ?: false
             defaultTargetUrl = conf.saml.afterLoginUrl
         }
 
@@ -153,7 +156,10 @@ SAML 2.x support for the Spring Security Plugin
             filterProcessesUrl = conf.saml.metadata.url 						// '/saml/metadata'
         }
 
-        metadataGenerator(MetadataGenerator)
+        metadataGenerator(MetadataGenerator) {
+            entityBaseURL = conf.saml.entityBaseURL
+        }
+
 
         // TODO: Update to handle any type of meta data providers for default to file based instead http provider.
         log.debug "Dynamically defining bean metadata providers... "
@@ -162,8 +168,23 @@ SAML 2.x support for the Spring Security Plugin
 //            def providerBeanName = "${k}ExtendedMetadataDelegate"
             println "Registering metadata key: ${k} and value: $v"
             if( v.startsWith('http')) {
+                Timer taskTimer = new Timer(true)
+                HttpClient httpclient = new HttpClient()
+                def uri=new URI(v)
+                if (System.getProperty("${uri.scheme}.proxyHost") != null) {
+                    try {
+                        HostConfiguration hostConfiguration = httpclient.getHostConfiguration();
+                        hostConfiguration.setProxy(System.getProperty("${uri.scheme}.proxyHost"), Integer.parseInt(System.getProperty("${uri.scheme}.proxyPort")));
+                        httpclient.setHostConfiguration(hostConfiguration);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Cannot set proxy!", e);
+                    }
+                } else {
+                    log.warn  "Proxy not defined in system properties: ${System.properties.keySet()}"
+                }
+                println "SAML uses proxy: ${httpclient.hostConfiguration.proxyHost}:${httpclient.hostConfiguration.proxyPort}"
                 "${providerBeanName}"(HTTPMetadataProvider) { spMetadataBean ->
-                    spMetadataBean.constructorArgs = [v, 5000]
+                    spMetadataBean.constructorArgs = [taskTimer, httpclient, v]
                     parserPool=ref('parserPool')
                 }
             } else {
@@ -293,6 +314,8 @@ SAML 2.x support for the Spring Security Plugin
             samlUserGroupAttribute = conf.saml.userGroupAttribute
             samlUserGroupToRoleMapping = conf.saml.userGroupToRoleMapping
             userDomainClassName = conf.userLookup.userDomainClassName
+            authoritiesPropertyName = conf.userLookup.authoritiesPropertyName
+            authorityPropertyName = conf.authority.nameField
         }
 
         samlAuthenticationProvider(GrailsSAMLAuthenticationProvider) {

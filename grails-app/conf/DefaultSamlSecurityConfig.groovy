@@ -2,6 +2,9 @@ security {
 	saml {
 		userAttributeMappings = [:]
 		active = true
+		targetUrlParameter = 'returnUrl'
+		entityBaseURL = null
+		useReferer = false
 		afterLoginUrl = '/'
 		afterLogoutUrl = '/'
 		userGroupAttribute = "memberOf"
