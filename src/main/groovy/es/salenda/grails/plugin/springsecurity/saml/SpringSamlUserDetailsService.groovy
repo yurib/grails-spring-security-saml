@@ -17,14 +17,13 @@ package es.salenda.grails.plugin.springsecurity.saml
 import grails.core.GrailsDomainClass
 import grails.plugin.springsecurity.userdetails.GormUserDetailsService
 import groovy.transform.CompileDynamic
-import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.springframework.beans.BeanUtils
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.saml.SAMLCredential
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService
-import org.springframework.dao.DataAccessException
 
 /**
  * A {@link GormUserDetailsService} extension to read attributes from a LDAP-backed 
@@ -33,6 +32,7 @@ import org.springframework.dao.DataAccessException
  * @author alvaro.sanchez
  */
 @CompileDynamic
+@Slf4j
 class SpringSamlUserDetailsService extends GormUserDetailsService implements SAMLUserDetailsService {
 	// Spring bean injected configuration parameters
 	String authorityClassName

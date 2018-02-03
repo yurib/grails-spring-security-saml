@@ -3,12 +3,10 @@ grails {
 		springsecurity {
 			rejectIfNoRule = false
 			userLookup {
-				userDomainClassName = 'test.TestSamlUser'
 				usernamePropertyName = 'username'
 				enabledPropertyName = 'enabled'
 				passwordPropertyName = 'password'
 				authoritiesPropertyName = 'roles'
-				authorityJoinClassName = 'test.TestUserRole'
 			}
 			interceptUrlMap = [
 					[pattern: '/',               access: ['permitAll']],
@@ -28,7 +26,6 @@ grails {
 					[pattern: '/logout/**',      access: ['permitAll']]
 			]
 			authority {
-				className = 'test.TestRole'
 				nameField = 'authority'
 			}
 			saml {
