@@ -71,7 +71,8 @@ grails:
                   className: 'test.testRole'
                   nameField: 'auth'
             saml:
-                  userAttributeMappings: [username: 'username']
+                  userAttributeMappings:
+                      username: 'username'
                   active: true
                   afterLoginUrl: '/'
                   afterLogoutUrl: '/'
@@ -84,23 +85,25 @@ grails:
                   metadata:
                        defaultIdp: 'ping'
                        url: '/saml/metadata'
-                       providers: [ ping: 'security/idp-local.xml']
+                       providers:
+                           ping: 'security/idp-local.xml'
                        sp:
                            file: 'security/sp.xml'
-                           defaults: [
-                                local: true,
-                                alias: 'test',
-                                securityProfile: 'metaiop',
-                                signingKey: 'ping',
-                                encryptionKey: 'ping',
-                                tlsKey: 'ping',
-                                requireArtifactResolveSigned: false,
-                                requireLogoutRequestSigned: false,
-                                requireLogoutResponseSigned: false ]
+                           defaults:
+                                local: true
+                                alias: 'test'
+                                securityProfile: 'metaiop'
+                                signingKey: 'ping'
+                                encryptionKey: 'ping'
+                                tlsKey: 'ping'
+                                requireArtifactResolveSigned: false
+                                requireLogoutRequestSigned: false
+                                requireLogoutResponseSigned: false
                   keyManager:
                         storeFile: 'classpath:security/keystore.jks'
                         storePass: 'nalle123'
-                        passwords: [ ping: 'ping123' ]
+                        passwords:
+                            ping: 'ping123'
                         defaultKey: 'ping'
     views:
         default:
@@ -125,47 +128,8 @@ endpoints:
     jmx:
         unique-names: true
 
-dataSource:
-    pooled: true
-    jmxExport: true
-    driverClassName: org.h2.Driver
-    url: 'jdbc:h2:mem:samlDb'
-    dbCreate: update
-    username: sa
-    password:
-
 environments:
-    localConnected:
-        dataSource:
-            dbCreate: create-drop
-            url: jdbc:h2:mem:devSamlDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-    development:
-        dataSource:
-            dbCreate: create-drop
-            url: jdbc:h2:mem:devSamlDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
     test:
         dataSource:
-            dbCreate: update
+            dbCreate: create-drop
             url: jdbc:h2:mem:testDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-    production:
-        dataSource:
-            dbCreate: update
-            url: jdbc:h2:./samlDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-            properties:
-                jmxEnabled: true
-                initialSize: 5
-                maxActive: 50
-                minIdle: 5
-                maxIdle: 25
-                maxWait: 10000
-                maxAge: 600000
-                timeBetweenEvictionRunsMillis: 5000
-                minEvictableIdleTimeMillis: 60000
-                validationQuery: SELECT 1
-                validationQueryTimeout: 3
-                validationInterval: 15000
-                testOnBorrow: true
-                testWhileIdle: true
-                testOnReturn: false
-                jdbcInterceptors: ConnectionState
-                defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED

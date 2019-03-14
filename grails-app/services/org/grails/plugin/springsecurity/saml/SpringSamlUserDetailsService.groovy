@@ -1,8 +1,3 @@
-package org.grails.plugin.springsecurity.saml
-
-import grails.converters.JSON
-import grails.plugin.springsecurity.SpringSecurityUtils
-
 /* Copyright 2006-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,19 +12,18 @@ import grails.plugin.springsecurity.SpringSecurityUtils
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.grails.plugin.springsecurity.saml
+
+import grails.gorm.transactions.Transactional
+
 import grails.plugin.springsecurity.userdetails.GormUserDetailsService
-import grails.transaction.Transactional
-import grails.util.Holders
 import groovy.util.logging.Slf4j
-import org.opensaml.saml2.core.Attribute
 import org.springframework.beans.BeanUtils
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.saml.SAMLCredential
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService
-import org.springframework.dao.DataAccessException
-import grails.core.GrailsApplication
 
 /**
  * A {@link GormUserDetailsService} extension to read attributes from a LDAP-backed
@@ -38,6 +32,7 @@ import grails.core.GrailsApplication
  * @author alvaro.sanchez
  */
 @Transactional
+@Slf4j('logger')
 class SpringSamlUserDetailsService extends GormUserDetailsService implements SAMLUserDetailsService {
 
     String authorityClassName
@@ -54,19 +49,19 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 
 
     public Object loadUserBySAML(SAMLCredential credential) throws UsernameNotFoundException {
-        log.debug("Loading user - ${credential.toString()}")
+        logger.debug("Loading user - ${credential.toString()}")
         if (credential) {
             String username = getSamlUsername(credential)
-            log.debug("Username ${username}")
+            logger.debug("Username ${username}")
             if (!username) {
                 throw new UsernameNotFoundException("No username supplied in saml response.")
             }
 
             def user = generateSecurityUser(username)
-            log.debug("Generated User ${user.username}")
+            logger.debug("Generated User ${user.username}")
             user = mapAdditionalAttributes(credential, user)
             if (user) {
-                log.debug "Loading database roles for $username..."
+                logger.debug "Loading database roles for $username..."
                 def authorities = getAuthoritiesForUser(credential, username)
 
                 def grantedAuthorities = []
@@ -89,11 +84,11 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
                 else {
                     grantedAuthorities = authorities
                 }
-                log.debug("User Class ${user?.class}")
-                log.debug("User - username ${user?.username}")
-                log.debug("User - id ${user?.id}")
+                logger.debug("User Class ${user?.class}")
+                logger.debug("User - username ${user?.username}")
+                logger.debug("User - id ${user?.id}")
                 def userDetails = createUserDetails(user, grantedAuthorities)
-                log.debug("User Details ${userDetails.toString()}")
+                logger.debug("User Details ${userDetails.toString()}")
                 return userDetails
             } else {
                 throw new InstantiationException('could not instantiate new user')
@@ -102,10 +97,11 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
     }
 
     protected String getSamlUsername(credential) {
-        log.debug("getSamlUsername")
-        if (samlUserAttributeMappings?.username) {
-            def value = credential.getAttributeAsString(samlUserAttributeMappings.username)
-            log.debug("Username getSamlUsername ${value}")
+        logger.debug("getSamlUsername()")
+        def usernameAttr = samlUserAttributeMappings?.username
+        if ( usernameAttr ) {
+            def value = credential.getAttributeAsString(usernameAttr)
+            logger.debug("Username using attribute '${usernameAttr}': ${value}")
             return value
         } else {
             // if no mapping provided for username attribute then assume it is the returned subject in the assertion
@@ -126,22 +122,25 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
     protected Collection<GrantedAuthority> getAuthoritiesForUser(SAMLCredential credential, String username) {
         Set<GrantedAuthority> authorities = new HashSet<SimpleGrantedAuthority>()
 
+        logger.debug( 'Using samlUserGroupAttribute: ' + samlUserGroupAttribute)
         String[] samlGroups = credential.getAttributeAsStringArray(samlUserGroupAttribute)
+        logger.debug( 'Using samlGroups: ' + samlGroups )
+        logger.debug( 'User samlUserGroupToRoleMapping: ' + samlUserGroupToRoleMapping )
 
         samlGroups.eachWithIndex { groupName, groupIdx ->
-            log.debug("Group Name From Saml ${groupName}")
+            logger.debug("Group Name From SAML: ${groupName}")
             def role = samlUserGroupToRoleMapping?.find{ it?.value == groupName }?.key
             def authority
             if (role){
-                log.debug("Found Role")
+                logger.debug("Found Role")
                 authority = getRole(role)
             }
             if (authority) {
-                log.debug("Found Authority Adding it")
+                logger.debug("Found Authority Adding it")
                 authorities.add(new SimpleGrantedAuthority(authority."$authorityNameField"))
             }
         }
-        log.debug("Returning Authorities with  ${authorities?.size()} Authorities Added")
+        logger.debug("Returning Authorities with  ${authorities?.size()} Authorities Added")
         return authorities
     }
 
@@ -149,13 +148,13 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
     private Object generateSecurityUser(username) {
 
         if (userDomainClassName) {
-            log.debug("UserClassName ${userDomainClassName}")
+            logger.debug("UserClassName ${userDomainClassName}")
             Class<?> UserClass = grailsApplication.getClassForName(userDomainClassName)
-            log.debug("Artefact ${grailsApplication.getClassForName(userDomainClassName)}")
-            println("Config ${grailsApplication.config.toString()}")
+            logger.debug("Artefact ${grailsApplication.getClassForName(userDomainClassName)}")
+            logger.debug("Config ${grailsApplication.config.toString()}")
 
                     //getClassForName(userDomainClassName)?.clazz
-            println("UserClass ${UserClass}")
+            logger.debug("UserClass ${UserClass}")
             if (UserClass) {
                 def user = BeanUtils.instantiateClass(UserClass)
                 user.username = username
@@ -170,40 +169,40 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
     }
 
     private def saveUser(userClazz, user, authorities) {
-        log.debug("Saving User")
+        logger.debug("Saving User")
         if (userClazz && samlAutoCreateActive && samlAutoCreateKey && authorityNameField && authorityJoinClassName) {
 
             Map whereClause = [:]
             whereClause.put "$samlAutoCreateKey".toString(), user."$samlAutoCreateKey"
             Class<?> joinClass = grailsApplication.getDomainClass(authorityJoinClassName)?.clazz
-            log.debug("Before With Transaction")
+            logger.debug("Before With Transaction")
 
-                log.debug("Saving User")
+                logger.debug("Saving User")
                 def existingUser
                 userClazz.withTransaction {
                     existingUser = userClazz.findWhere(whereClause)
                 }
 
                 if (!existingUser) {
-                    log.debug("User Doesn't Exist.....save it")
+                    logger.debug("User Doesn't Exist.....save it")
                     userClazz.withTransaction {
                         user.save(flush:true)
                         //if (!user.save()) throw new UsernameNotFoundException("Could not save user ${user}");
                     }
 
                 } else {
-                    log.debug("User Exists.....update its properties")
+                    logger.debug("User Exists.....update its properties")
                     user = updateUserProperties(existingUser, user)
 
                     if (samlAutoAssignAuthorities) {
-                        log.debug("Remove all Authorities")
+                        logger.debug("Remove all Authorities")
                         joinClass.withTransaction {
                             joinClass.removeAll user
                         }
 
 
                     }
-                    log.debug("Now Save the User")
+                    logger.debug("Now Save the User")
                     userClazz.withTransaction {
                         user.save()
                     }
@@ -211,26 +210,25 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
                 }
 
                 if (samlAutoAssignAuthorities) {
-                    log.debug("go thru the list of authorities")
+                    logger.debug("go thru the list of authorities")
                     authorities.each { grantedAuthority ->
-                        log.debug("Working on Authority ${grantedAuthority}.${authorityNameField}")
+                        logger.debug("Working on Authority ${grantedAuthority}.${authorityNameField}")
                         def role = getRole(grantedAuthority."${authorityNameField}")
-                        log.debug("SAVING USER_ROLE - User name ${user.username}")
-                        log.debug("SAVING USER_ROLE - Role name ${role.authority}")
-                        log.debug("SAVING USER_ROLE - User Id ${user.id}")
-                        log.debug("SAVING USER_ROLE - Role Id ${role.id}")
+                        logger.debug("SAVING USER_ROLE - User name ${user.username}")
+                        logger.debug("SAVING USER_ROLE - Role name ${role.authority}")
+                        logger.debug("SAVING USER_ROLE - User Id ${user.id}")
+                        logger.debug("SAVING USER_ROLE - Role Id ${role.id}")
                         joinClass.withTransaction {
                             if (!joinClass.exists(user.id, role.id)){
                                 joinClass.create(user, role, true)
+                                logger.debug 'Allocated new role to user.'
                             }
-
+                            else {
+                                logger.debug 'User and role already exists, nothing created.'
+                            }
                         }
-
                     }
-
                 }
-
-
         }
         return user
     }
@@ -244,15 +242,15 @@ class SpringSamlUserDetailsService extends GormUserDetailsService implements SAM
 
     private Object getRole(String authority) {
         if (authority && authorityNameField && authorityClassName) {
-            log.debug("getRole - param -> ${authority}")
+            logger.debug("getRole - param -> ${authority}")
             Class<?> RoleClass = grailsApplication.getDomainClass(authorityClassName).clazz
             Map whereClause = [:]
             whereClause.put "$authorityNameField".toString(), authority
             if (RoleClass) {
                 RoleClass.withTransaction {
-                    log.debug("Where clause -> ${whereClause}")
+                    logger.debug("Where clause -> ${whereClause}")
                     def returnVal = RoleClass.findWhere(whereClause)
-                    log.debug("Return Value from getRole Class-> ${returnVal?.class}  Value -> ${returnVal}")
+                    logger.debug("Return Value from getRole Class-> ${returnVal?.class}  Value -> ${returnVal}")
                     returnVal
                 }
             } else {

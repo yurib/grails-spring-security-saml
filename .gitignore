@@ -8,6 +8,7 @@
 *.ipr
 
 .idea/
+out/
 
 ### OSX ###
 .DS_Store
@@ -63,7 +64,6 @@ $RECYCLE.BIN/
 
 ### Gradle ###
 .gradle
-gradle.properties
 build/
 
 # Ignore Gradle GUI config
@@ -130,3 +130,7 @@ pom.xml.next
 release.properties
 
 .asscache
+
+### Exceptions ###
+!gradle/wrapper/gradle-wrapper.jar
+!grails-wrapper.jar
